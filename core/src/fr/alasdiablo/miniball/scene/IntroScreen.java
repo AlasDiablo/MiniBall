@@ -13,19 +13,18 @@ public class IntroScreen implements Screen {
 
     private final OrthographicCamera camera;
     private final FitViewport viewport;
+    private final SpriteBatch batch;
+    private int middleX;
+    private int middleY;
 
     private int frame;
     private final Sound bip;
     private boolean doSound;
     private final Texture logo;
     private final Texture cover;
-    private final SpriteBatch batch;
 
-    private int middleX;
-    private int middleY;
 
     public IntroScreen() {
-
         this.camera = new OrthographicCamera();
         this.viewport = new FitViewport(102.4f, 76.8f, camera);
         this.viewport.apply();
@@ -38,7 +37,6 @@ public class IntroScreen implements Screen {
 
         this.middleX = (int) this.camera.viewportWidth / 2;
         this.middleY = (int) this.camera.viewportHeight / 2;
-
 
         this.batch = new SpriteBatch();
         this.batch.setProjectionMatrix(camera.combined);
@@ -56,9 +54,7 @@ public class IntroScreen implements Screen {
     }
 
     @Override
-    public void show() {
-
-    }
+    public void show() {}
 
     @Override
     public void render(float delta) {
@@ -96,14 +92,10 @@ public class IntroScreen implements Screen {
     }
 
     @Override
-    public void pause() {
-
-    }
+    public void pause() {}
 
     @Override
-    public void resume() {
-
-    }
+    public void resume() {}
 
     @Override
     public void hide() {
@@ -113,6 +105,7 @@ public class IntroScreen implements Screen {
     @Override
     public void dispose() {
         this.bip.dispose();
+        this.batch.dispose();
     }
 
 }
