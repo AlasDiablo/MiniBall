@@ -4,12 +4,14 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.InputProcessor;
 import com.badlogic.gdx.Screen;
+import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
+import com.badlogic.gdx.utils.Timer;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 
 public class MenuScreen implements Screen {
@@ -21,8 +23,10 @@ public class MenuScreen implements Screen {
     private int middleY;
     private final BitmapFont titleFont;
     private final BitmapFont menuFont;
-
     private int select;
+
+    private final Sound succes;
+    private final Sound gameboyPluck;
 
 
     public MenuScreen() {
@@ -57,6 +61,9 @@ public class MenuScreen implements Screen {
         this.select = 0;
 
         Gdx.input.setInputProcessor(new InputMenu());
+
+        this.succes = Gdx.audio.newSound(Gdx.files.internal("sounds/success.mp3"));
+        this.gameboyPluck = Gdx.audio.newSound(Gdx.files.internal("sounds/gameboy-pluck.mp3"));
     }
 
 
@@ -113,8 +120,25 @@ public class MenuScreen implements Screen {
 
     private class InputMenu implements InputProcessor {
 
+        private void succesSound() {
+            MenuScreen.this.succes.play();
+        }
+
+        private void gameboyPluckSound() {
+            MenuScreen.this.gameboyPluck.play();
+        }
+
         private float crossMultiplication(float a, float b, float c) {
             return ((c * b) / a);
+        }
+
+        private void exit() {
+            Timer.schedule(new Timer.Task() {
+                @Override
+                public void run() {
+                    Gdx.app.exit();
+                }
+            }, 0.5f);
         }
 
         @Override
@@ -124,15 +148,17 @@ public class MenuScreen implements Screen {
                     MenuScreen.this.select++;
                     if (MenuScreen.this.select > 2)
                         MenuScreen.this.select = 0;
+                    this.gameboyPluckSound();
                     return true;
                 case Input.Keys.UP:
                     MenuScreen.this.select--;
                     if (MenuScreen.this.select < 0)
                         MenuScreen.this.select = 2;
+                    this.gameboyPluckSound();
                     return true;
                     case Input.Keys.ENTER:
-                        if (MenuScreen.this.select == 2) Gdx.app.exit();
-
+                        if (MenuScreen.this.select == 2) this.exit();
+                        this.succesSound();
                         return true;
                 default:
                     return false;
@@ -148,17 +174,19 @@ public class MenuScreen implements Screen {
                 MenuScreen.this.select--;
                 if (MenuScreen.this.select < 0)
                     MenuScreen.this.select = 2;
+                this.gameboyPluckSound();
                 return true;
             }
             if (crossScreenX < MenuScreen.this.middleX && crossScreenY > MenuScreen.this.middleY) {
                 MenuScreen.this.select++;
                 if (MenuScreen.this.select > 2)
                     MenuScreen.this.select = 0;
+                this.gameboyPluckSound();
                 return true;
             }
             if (crossScreenX > MenuScreen.this.middleX) {
-                if (MenuScreen.this.select == 2) Gdx.app.exit();
-
+                if (MenuScreen.this.select == 2) this.exit();
+                this.succesSound();
                 return true;
             }
             return false;
