@@ -23,6 +23,7 @@ public class MenuScreen implements Screen {
     private int middleY;
     private final BitmapFont titleFont;
     private final BitmapFont menuFont;
+    private InputProcessor inputProcessor;
     private int select;
 
     private final Sound succes;
@@ -60,13 +61,21 @@ public class MenuScreen implements Screen {
 
         this.select = 0;
 
-        Gdx.input.setInputProcessor(new InputMenu());
+        this.inputProcessor = new InputMenu();
 
         this.succes = Gdx.audio.newSound(Gdx.files.internal("sounds/success.mp3"));
         this.gameboyPluck = Gdx.audio.newSound(Gdx.files.internal("sounds/gameboy-pluck.mp3"));
     }
 
+    @Override
+    public void show() {
+        Gdx.input.setInputProcessor(this.inputProcessor);
+    }
 
+    @Override
+    public void hide() {
+        Gdx.input.setInputProcessor(null);
+    }
 
     @Override
     public void render(float delta) {
@@ -125,7 +134,7 @@ public class MenuScreen implements Screen {
         }
 
         private void gameboyPluckSound() {
-            MenuScreen.this.gameboyPluck.play();
+            MenuScreen.this.gameboyPluck.play(.4f);
         }
 
         private float crossMultiplication(float a, float b, float c) {
@@ -142,31 +151,7 @@ public class MenuScreen implements Screen {
         }
 
         @Override
-        public boolean keyUp(int keycode) {
-            switch (keycode) {
-                case Input.Keys.DOWN:
-                    MenuScreen.this.select++;
-                    if (MenuScreen.this.select > 2)
-                        MenuScreen.this.select = 0;
-                    this.gameboyPluckSound();
-                    return true;
-                case Input.Keys.UP:
-                    MenuScreen.this.select--;
-                    if (MenuScreen.this.select < 0)
-                        MenuScreen.this.select = 2;
-                    this.gameboyPluckSound();
-                    return true;
-                    case Input.Keys.ENTER:
-                        if (MenuScreen.this.select == 2) this.exit();
-                        this.succesSound();
-                        return true;
-                default:
-                    return false;
-            }
-        }
-
-        @Override
-        public boolean touchUp(int screenX, int screenY, int pointer, int button) {
+        public boolean touchDown(int screenX, int screenY, int pointer, int button) {
             float crossScreenX = this.crossMultiplication(Gdx.graphics.getWidth(), MenuScreen.this.camera.viewportWidth, screenX);
             float crossScreenY = this.crossMultiplication(Gdx.graphics.getHeight(), MenuScreen.this.camera.viewportHeight, screenY);
 
@@ -193,33 +178,45 @@ public class MenuScreen implements Screen {
         }
 
         @Override
-        public boolean keyDown(int keycode) {return false;}
+        public boolean keyDown(int keycode) {
+            switch (keycode) {
+                case Input.Keys.DOWN:
+                    MenuScreen.this.select++;
+                    if (MenuScreen.this.select > 2)
+                        MenuScreen.this.select = 0;
+                    this.gameboyPluckSound();
+                    return true;
+                case Input.Keys.UP:
+                    MenuScreen.this.select--;
+                    if (MenuScreen.this.select < 0)
+                        MenuScreen.this.select = 2;
+                    this.gameboyPluckSound();
+                    return true;
+                case Input.Keys.ENTER:
+                    if (MenuScreen.this.select == 2) this.exit();
+                    this.succesSound();
+                    return true;
+                default:
+                    return false;
+            }
+        }
 
+        @Override
+        public boolean touchUp(int screenX, int screenY, int pointer, int button) { return false; }
+        @Override
+        public boolean keyUp(int keycode) { return false; }
         @Override
         public boolean keyTyped(char character) {return false;}
-
-        @Override
-        public boolean touchDown(int screenX, int screenY, int pointer, int button) {return false;}
-
         @Override
         public boolean touchDragged(int screenX, int screenY, int pointer) {return false;}
-
         @Override
         public boolean mouseMoved(int screenX, int screenY) {return false;}
-
         @Override
         public boolean scrolled(int amount) {return false;}
     }
 
     @Override
-    public void hide() {}
-
-    @Override
-    public void show() {}
-
-    @Override
     public void pause() {}
-
     @Override
     public void resume() {}
 }
