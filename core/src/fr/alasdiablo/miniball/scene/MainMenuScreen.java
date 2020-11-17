@@ -1,4 +1,4 @@
 package fr.alasdiablo.miniball.scene;
 
-public class Game {
+public class MainMenuScreen {
 }
