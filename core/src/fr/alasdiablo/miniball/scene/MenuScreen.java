@@ -12,8 +12,6 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 
-import java.util.Locale;
-
 public class MenuScreen implements Screen {
 
     private final OrthographicCamera camera;
@@ -108,13 +106,9 @@ public class MenuScreen implements Screen {
     }
 
     @Override
-    public void hide() {
-        this.dispose();
-    }
-
-    @Override
     public void dispose() {
         this.titleFont.dispose();
+        this.menuFont.dispose();
     }
 
     private class InputMenu implements InputProcessor {
@@ -188,6 +182,9 @@ public class MenuScreen implements Screen {
         @Override
         public boolean scrolled(int amount) {return false;}
     }
+
+    @Override
+    public void hide() {}
 
     @Override
     public void show() {}

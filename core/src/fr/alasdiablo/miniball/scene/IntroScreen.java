@@ -98,9 +98,7 @@ public class IntroScreen implements Screen {
     public void resume() {}
 
     @Override
-    public void hide() {
-        this.dispose();
-    }
+    public void hide() {}
 
     @Override
     public void dispose() {
