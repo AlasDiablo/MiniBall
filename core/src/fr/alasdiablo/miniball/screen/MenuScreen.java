@@ -1,4 +1,4 @@
-package fr.alasdiablo.miniball.scene;
+package fr.alasdiablo.miniball.screen;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
@@ -13,6 +13,7 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
 import com.badlogic.gdx.utils.Timer;
 import com.badlogic.gdx.utils.viewport.FitViewport;
+import fr.alasdiablo.miniball.util.MiniBallConst;
 
 public class MenuScreen implements Screen {
 
@@ -23,7 +24,7 @@ public class MenuScreen implements Screen {
     private int middleY;
     private final BitmapFont titleFont;
     private final BitmapFont menuFont;
-    private InputProcessor inputProcessor;
+    private final InputProcessor inputProcessor;
     private int select;
 
     private final Sound succes;
@@ -130,11 +131,11 @@ public class MenuScreen implements Screen {
     private class InputMenu implements InputProcessor {
 
         private void succesSound() {
-            MenuScreen.this.succes.play();
+            MenuScreen.this.succes.play(MiniBallConst.SOUND_VOLUME);
         }
 
         private void gameboyPluckSound() {
-            MenuScreen.this.gameboyPluck.play(.4f);
+            MenuScreen.this.gameboyPluck.play(MiniBallConst.SOUND_VOLUME * .4f);
         }
 
         private float crossMultiplication(float a, float b, float c) {
