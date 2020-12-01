@@ -14,16 +14,16 @@ public class MiniBall extends Game {
     @Override
     public void create() {
         this.introScreen = new IntroScreen();
-        this.menuScreen = new MenuScreen();
+        this.menuScreen = new MenuScreen(this);
 
-        this.setScreen(new GameScreen());
+        this.setScreen(new GameScreen(false));
 
 //        Timer.schedule(new Timer.Task() {
 //            @Override
 //            public void run() {
 //                MiniBall.this.setScreen(MiniBall.this.introScreen);
 //            }
-//        }, .5f);
+//        }, 0.5f);
 //
 //        Timer.schedule(new Timer.Task() {
 //            @Override

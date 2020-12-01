@@ -1,9 +1,6 @@
 package fr.alasdiablo.miniball.screen;
 
-import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.Input;
-import com.badlogic.gdx.InputProcessor;
-import com.badlogic.gdx.Screen;
+import com.badlogic.gdx.*;
 import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
@@ -30,8 +27,11 @@ public class MenuScreen implements Screen {
     private final Sound succes;
     private final Sound gameboyPluck;
 
+    private final Game game;
 
-    public MenuScreen() {
+
+    public MenuScreen(Game game) {
+        this.game = game;
         this.camera = new OrthographicCamera();
         this.viewport = new FitViewport(102.4f * 4, 76.8f * 4, camera);
         this.viewport.apply();
@@ -171,6 +171,8 @@ public class MenuScreen implements Screen {
                 return true;
             }
             if (crossScreenX > MenuScreen.this.middleX) {
+                if (MenuScreen.this.select == 0) MenuScreen.this.game.setScreen(new GameScreen(false));
+                if (MenuScreen.this.select == 1) MenuScreen.this.game.setScreen(new GameScreen(true));
                 if (MenuScreen.this.select == 2) this.exit();
                 this.succesSound();
                 return true;
@@ -194,6 +196,8 @@ public class MenuScreen implements Screen {
                     this.gameboyPluckSound();
                     return true;
                 case Input.Keys.ENTER:
+                    if (MenuScreen.this.select == 0) MenuScreen.this.game.setScreen(new GameScreen(false));
+                    if (MenuScreen.this.select == 1) MenuScreen.this.game.setScreen(new GameScreen(true));
                     if (MenuScreen.this.select == 2) this.exit();
                     this.succesSound();
                     return true;

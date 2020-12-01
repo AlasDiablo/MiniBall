@@ -3,16 +3,15 @@ package fr.alasdiablo.miniball.player;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.math.Vector2;
 
-public class PlayerLeft implements IPlayer {
+public class PlayerLeftControl implements IPlayer {
 
-    public boolean up;
-    public boolean left;
-    public boolean down;
-    public boolean right;
-
+    protected boolean up;
+    protected boolean left;
+    protected boolean down;
+    protected boolean right;
 
     @Override
-    public void moveUp(int keyCode) {
+    public void moveDown(int keyCode) {
         switch (keyCode) {
             case Input.Keys.Z:
                 this.up = true;
@@ -30,7 +29,7 @@ public class PlayerLeft implements IPlayer {
     }
 
     @Override
-    public void moveDown(int keyCode) {
+    public void moveUp(int keyCode) {
         switch (keyCode) {
             case Input.Keys.Z:
                 this.up = false;
@@ -54,17 +53,25 @@ public class PlayerLeft implements IPlayer {
 
     @Override
     public Vector2 getVelocity() {
+        // up left down right
         if (this.up && !this.left && !this.down && !this.right)
-            return new Vector2(0f, 10f);
+            return new Vector2(0f, 2000f);
         else if (!this.up && this.left && !this.down && !this.right)
-            return new Vector2(-10f, 0f);
+            return new Vector2(-2000f, 0f);
         else if (!this.up && !this.left && this.down && !this.right)
-            return new Vector2(-10f, 0f);
-
-
-
-
-
+            return new Vector2(0f, -2000f);
+        else if (!this.up && !this.left && !this.down && this.right)
+            return new Vector2(2000f, 0f);
+        // up-left up-right down-left down-right
+        else if (this.up && this.left && !this.down && !this.right)
+            return new Vector2(-1000f, 1000f);
+        else if (this.up && !this.left && !this.down && this.right)
+            return new Vector2(1000f, 1000f);
+        else if (!this.up && this.left && this.down && !this.right)
+            return new Vector2(-1000f, -1000f);
+        else if (!this.up && !this.left && this.down && this.right)
+            return new Vector2(1000f, -1000f);
+        // null vector by default and for other key combination
         return new Vector2(0f, 0f);
     }
 }
