@@ -5,6 +5,6 @@ import com.badlogic.gdx.math.Vector2;
 public interface IPlayer {
     void moveUp(int keyCode);
     void moveDown(int keyCode);
-    void moveVector(Vector2 vector);
+    void moveVector();
     Vector2 getVelocity();
 }

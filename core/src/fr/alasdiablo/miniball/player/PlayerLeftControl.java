@@ -1,5 +1,6 @@
 package fr.alasdiablo.miniball.player;
 
+import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.math.Vector2;
 
@@ -9,6 +10,12 @@ public class PlayerLeftControl implements IPlayer {
     protected boolean left;
     protected boolean down;
     protected boolean right;
+
+    protected Vector2 vector2;
+
+    public PlayerLeftControl() {
+        this.vector2 = new Vector2(0f, 0f);
+    }
 
     @Override
     public void moveDown(int keyCode) {
@@ -45,14 +52,31 @@ public class PlayerLeftControl implements IPlayer {
                 break;
         }
     }
-
     @Override
-    public void moveVector(Vector2 vector) {
-
+    public void moveVector() {
+        if (Gdx.input.isTouched()) {
+            int x = Gdx.input.getX();
+            if (x < Gdx.graphics.getWidth()/2) {
+                float deltaX = Gdx.input.getDeltaX() * 100f;
+                float deltaY = -Gdx.input.getDeltaY() * 100f;
+                this.vector2 = new Vector2(
+                        Math.min( // make sure that x is between -800f and 800f
+                                Math.max(deltaX, -800f),
+                                800f
+                        ),
+                        Math.min( // make sure that y is between -800f and 800f
+                                Math.max(deltaY, -800f),
+                                800f
+                        )
+                );
+            }
+        }
     }
 
     @Override
     public Vector2 getVelocity() {
+        // Update moving vector
+        this.moveVector();
         // up left down right
         if (this.up && !this.left && !this.down && !this.right)
             return new Vector2(0f, 2000f);
@@ -72,6 +96,6 @@ public class PlayerLeftControl implements IPlayer {
         else if (!this.up && !this.left && this.down && this.right)
             return new Vector2(1000f, -1000f);
         // null vector by default and for other key combination
-        return new Vector2(0f, 0f);
+        return this.vector2;
     }
 }

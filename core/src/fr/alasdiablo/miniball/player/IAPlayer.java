@@ -45,8 +45,14 @@ public class IAPlayer implements IPlayer {
         final float x = (b.getX() - a.getX()) * mul;
         final float y = (b.getY() - a.getY()) * mul;
         return new Vector2(
-                Math.min(x, 800f),
-                Math.min(y, 800f)
+                Math.min( // make sure that x is between -800f and 800f
+                        Math.max(x, -800f),
+                        800f
+                ),
+                Math.min( // make sure that y is between -800f and 800f
+                        Math.max(y, -800f),
+                        800f
+                )
         );
     }
 
@@ -54,5 +60,5 @@ public class IAPlayer implements IPlayer {
 
     @Override public void moveDown(int keyCode) {}
 
-    @Override public void moveVector(Vector2 vector) {}
+    @Override public void moveVector() {}
 }

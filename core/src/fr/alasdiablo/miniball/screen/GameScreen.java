@@ -3,11 +3,14 @@ package fr.alasdiablo.miniball.screen;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.InputProcessor;
 import com.badlogic.gdx.Screen;
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
+import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.*;
 import com.badlogic.gdx.utils.viewport.FitViewport;
@@ -28,11 +31,13 @@ public class GameScreen implements Screen {
     private final Texture terrain;
     private final Sprite playerLeftSprite;
     private final Body playerRight;
+    private final Body goalRightBody;
+    private final Body goalLeftBody;
     private final Sprite playerRightSprite;
     private final InputProcessor playerInput;
     private final Box2DDebugRenderer debugRenderer;
     private final IPlayer playerLeftControl;
-    private final IPlayer playerRigthControl;
+    private final IPlayer playerRightControl;
     private final float worldWidth = 102.4f, worldHeight = 76.8f;
     private final Sprite ballSprite;
     private int middleX;
@@ -41,7 +46,7 @@ public class GameScreen implements Screen {
     public final Body ball;
     public final Body playerLeft;
 
-
+    private boolean goal = false, goalAtLeft = false, goalAtRight = false;
 
     public GameScreen(boolean twoPlayer) {
         // ---------------------- Setup camera and view ----------------------
@@ -124,7 +129,7 @@ public class GameScreen implements Screen {
         this.playerInput = new PlayerInput();
 
         // ---------------------- enable player movement ----------------------
-        this.playerRigthControl = new PlayerRightControl();
+        this.playerRightControl = new PlayerRightControl();
         if (twoPlayer) this.playerLeftControl = new PlayerLeftControl();
         else this.playerLeftControl = new IAPlayer(this);
 
@@ -157,10 +162,49 @@ public class GameScreen implements Screen {
         terrainBodyDef.type = BodyDef.BodyType.StaticBody;
         final Body terrainBody = this.world.createBody(terrainBodyDef);
         terrainBody.createFixture(terrainFixtureDef);
+        // ---------------------- goal left----------------------
+
+        final List<Vector2> goalLeftVectorList = Arrays.asList(
+                new Vector2(this.worldWidth * (7.6171875f / 100f), this.worldHeight * (58.59375f / 100f)),
+                new Vector2(this.worldWidth * (3.7109375f / 100f), this.worldHeight * (58.59375f / 100f)),
+                new Vector2(this.worldWidth * (3.7109375f / 100f), this.worldHeight * (41.015625f / 100f)),
+                new Vector2(this.worldWidth * (7.6171875f / 100f), this.worldHeight * (41.015625f / 100f)),
+                new Vector2(this.worldWidth * (7.6171875f / 100f), this.worldHeight * (58.59375f / 100f))
+        );
+
+        final ChainShape goalLeftShape = new ChainShape();
+        goalLeftShape.createChain(goalLeftVectorList.toArray(new Vector2[]{}));
+        final FixtureDef goalLeftFixtureDef = new FixtureDef();
+        final BodyDef goalLeftBodyDef = new BodyDef();
+        goalLeftFixtureDef.shape = goalLeftShape;
+        goalLeftFixtureDef.isSensor = true;
+        goalLeftBodyDef.type = BodyDef.BodyType.StaticBody;
+        this.goalLeftBody = this.world.createBody(goalLeftBodyDef);
+        this.goalLeftBody.createFixture(goalLeftFixtureDef);
+
+
+        // ---------------------- goal right----------------------
+
+        final List<Vector2> goalRightVectorList = Arrays.asList(
+                new Vector2(this.worldWidth * (92.3828125f / 100f), this.worldHeight * (41.015625f / 100f)),
+                new Vector2(this.worldWidth * (96.2890625f / 100f), this.worldHeight * (41.015625f / 100f)),
+                new Vector2(this.worldWidth * (96.2890625f / 100f), this.worldHeight * (58.59375f / 100f)),
+                new Vector2(this.worldWidth * (92.3828125f / 100f), this.worldHeight * (58.59375f / 100f)),
+                new Vector2(this.worldWidth * (92.3828125f / 100f), this.worldHeight * (41.015625f / 100f))
+        );
+
+        final ChainShape goalRightShape = new ChainShape();
+        goalRightShape.createChain(goalRightVectorList.toArray(new Vector2[]{}));
+        final FixtureDef goalRightFixtureDef = new FixtureDef();
+        final BodyDef goalRightBodyDef = new BodyDef();
+        goalRightFixtureDef.shape = goalRightShape;
+        goalRightFixtureDef.isSensor = true;
+        goalRightBodyDef.type = BodyDef.BodyType.StaticBody;
+        this.goalRightBody = this.world.createBody(goalRightBodyDef);
+        this.goalRightBody.createFixture(goalRightFixtureDef);
 
         // ---------------------- box 2d debug ----------------------
         this.debugRenderer = new Box2DDebugRenderer();
-
     }
 
     @Override
@@ -170,11 +214,11 @@ public class GameScreen implements Screen {
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
         // tick world
-
-        this.playerLeft.applyForceToCenter(this.playerLeftControl.getVelocity(), true);
-        this.playerRight.applyForceToCenter(this.playerRigthControl.getVelocity(), true);
-
-        world.step(Gdx.graphics.getDeltaTime(), 1, 1);
+        if (!this.goal) {
+            this.playerLeft.applyForceToCenter(this.playerLeftControl.getVelocity(), true);
+            this.playerRight.applyForceToCenter(this.playerRightControl.getVelocity(), true);
+            world.step(Gdx.graphics.getDeltaTime(), 1, 1);
+        }
 
         // tick player and ball sprite position
         this.playerLeftSprite.setPosition(this.playerLeft.getPosition().x - this.playerLeftSprite.getWidth()/2f, this.playerLeft.getPosition().y - this.playerLeftSprite.getHeight()/2f);
@@ -190,9 +234,31 @@ public class GameScreen implements Screen {
         this.playerLeftSprite.draw(this.batch);
         this.playerRightSprite.draw(this.batch);
         this.ballSprite.draw(this.batch);
+
         this.batch.end();
         // ---------------------- box 2d debug ----------------------
+        this.drawDebugLine(
+                this.playerLeft.getPosition(),
+                this.playerLeftControl.getVelocity(),
+                this.camera.combined
+        );
+        this.drawDebugLine(
+                this.playerRight.getPosition(),
+                this.playerRightControl.getVelocity(),
+                this.camera.combined
+        );
         this.debugRenderer.render(this.world, this.camera.combined);
+    }
+
+    private final ShapeRenderer debugShapeRenderer = new ShapeRenderer();
+    public void drawDebugLine(Vector2 start, Vector2 end, Matrix4 projectionMatrix) {
+        Gdx.gl.glLineWidth(2);
+        debugShapeRenderer.setProjectionMatrix(projectionMatrix);
+        debugShapeRenderer.begin(ShapeRenderer.ShapeType.Line);
+        debugShapeRenderer.setColor(Color.WHITE);
+        debugShapeRenderer.line(start, new Vector2(start).add(end));
+        debugShapeRenderer.end();
+        Gdx.gl.glLineWidth(1);
     }
 
 
@@ -219,6 +285,21 @@ public class GameScreen implements Screen {
     @Override
     public void show() {
         Gdx.input.setInputProcessor(this.playerInput);
+        this.world.setContactListener(new ContactListener() {
+            @Override public void beginContact(Contact contact) {
+                if (contact.getFixtureA().getBody().equals(GameScreen.this.goalLeftBody) && contact.getFixtureB().getBody().equals(GameScreen.this.ball)) {
+                    GameScreen.this.goal = true;
+                    GameScreen.this.goalAtLeft = true;
+                }
+                if (contact.getFixtureA().getBody().equals(GameScreen.this.goalRightBody) && contact.getFixtureB().getBody().equals(GameScreen.this.ball)) {
+                    GameScreen.this.goal = true;
+                    GameScreen.this.goalAtRight = true;
+                }
+            }
+            @Override public void endContact(Contact contact) {}
+            @Override public void preSolve(Contact contact, Manifold oldManifold) {}
+            @Override public void postSolve(Contact contact, ContactImpulse impulse) {}
+        });
     }
 
     @Override
@@ -231,16 +312,19 @@ public class GameScreen implements Screen {
         @Override
         public boolean keyDown(int keycode) {
             GameScreen.this.playerLeftControl.moveDown(keycode);
-            GameScreen.this.playerRigthControl.moveDown(keycode);
+            GameScreen.this.playerRightControl.moveDown(keycode);
             return false;
         }
 
         @Override
         public boolean keyUp(int keycode) {
             GameScreen.this.playerLeftControl.moveUp(keycode);
-            GameScreen.this.playerRigthControl.moveUp(keycode);
+            GameScreen.this.playerRightControl.moveUp(keycode);
             return false;
         }
+
+        @Override
+        public boolean touchDragged(int screenX, int screenY, int pointer) { return false; }
 
         @Override
         public boolean keyTyped(char character) {
@@ -254,11 +338,6 @@ public class GameScreen implements Screen {
 
         @Override
         public boolean touchUp(int screenX, int screenY, int pointer, int button) {
-            return false;
-        }
-
-        @Override
-        public boolean touchDragged(int screenX, int screenY, int pointer) {
             return false;
         }
 
