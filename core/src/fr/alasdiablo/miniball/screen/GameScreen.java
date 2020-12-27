@@ -7,12 +7,15 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.*;
+import com.badlogic.gdx.utils.Timer;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 import fr.alasdiablo.miniball.player.IAPlayer;
 import fr.alasdiablo.miniball.player.IPlayer;
@@ -30,7 +33,7 @@ public class GameScreen implements Screen {
     private final World world;
     private final Texture terrain;
     private final Sprite playerLeftSprite;
-    private final Body playerRight;
+    private Body playerRight;
     private final Body goalRightBody;
     private final Body goalLeftBody;
     private final Sprite playerRightSprite;
@@ -40,13 +43,21 @@ public class GameScreen implements Screen {
     private final IPlayer playerRightControl;
     private final float worldWidth = 102.4f, worldHeight = 76.8f;
     private final Sprite ballSprite;
+    private final BitmapFont font;
+    private final BitmapFont fontGoal;
     private int middleX;
     private int middleY;
 
-    public final Body ball;
-    public final Body playerLeft;
+    private final FixtureDef playerFixtureDef;
+    private final FixtureDef ballFixtureDef;
+    public Body ball;
+    public Body playerLeft;
 
-    private boolean goal = false, goalAtLeft = false, goalAtRight = false;
+    private int time;
+    private int pointLeft = 0, pointRight = 0;
+    private boolean goal = false, goalAtLeft = false, goalAtRight = false, timeOut = false;
+    private Timer.Task timerTask;
+    private final boolean debug = false;
 
     public GameScreen(boolean twoPlayer) {
         // ---------------------- Setup camera and view ----------------------
@@ -76,30 +87,20 @@ public class GameScreen implements Screen {
         // ---------------------- Create player shape and fixture ----------------------
         final CircleShape playerShape = new CircleShape();
         playerShape.setRadius(this.worldHeight / 40f);
-        final FixtureDef playerFixtureDef = new FixtureDef();
+        playerFixtureDef = new FixtureDef();
         playerFixtureDef.shape = playerShape;
         playerFixtureDef.density = 1f;
         playerFixtureDef.restitution = .25f;
 
         // ---------------------- Create player left body ----------------------
-        final BodyDef playerLeftBodyDef = new BodyDef();
-        playerLeftBodyDef.type = BodyDef.BodyType.DynamicBody;
-        playerLeftBodyDef.position.set(10f, this.worldHeight/2f);
-        playerLeftBodyDef.linearDamping = 1.5f;
-        this.playerLeft = this.world.createBody(playerLeftBodyDef);
-        this.playerLeft.createFixture(playerFixtureDef);
+        this.createPlayerLeft();
 
         // ---------------------- Create player left sprite ----------------------
         this.playerLeftSprite = new Sprite(new Texture("player_left.png"), 32, 32);
         this.playerLeftSprite.setScale(.125f);
 
         // ---------------------- Create player right body ----------------------
-        final BodyDef playerRightBodyDef = new BodyDef();
-        playerRightBodyDef.type = BodyDef.BodyType.DynamicBody;
-        playerRightBodyDef.position.set(90f, this.worldHeight/2f);
-        playerRightBodyDef.linearDamping = 1.5f;
-        this.playerRight = this.world.createBody(playerRightBodyDef);
-        this.playerRight.createFixture(playerFixtureDef);
+        this.createPlayerRight();
         // ---------------------- Create player right sprite ----------------------
         this.playerRightSprite = new Sprite(new Texture("player_right.png"), 32, 32);
         this.playerRightSprite.setScale(.125f);
@@ -108,18 +109,13 @@ public class GameScreen implements Screen {
         // ---------------------- Create ball shape and fixture ----------------------
         final CircleShape ballShape = new CircleShape();
         ballShape.setRadius(this.worldHeight / 85f);
-        final FixtureDef ballFixtureDef = new FixtureDef();
+        ballFixtureDef = new FixtureDef();
         ballFixtureDef.shape = ballShape;
         ballFixtureDef.density = 1f;
         ballFixtureDef.restitution = .5f;
 
         // ---------------------- Create ball body ----------------------
-        final BodyDef ballBodyDef = new BodyDef();
-        ballBodyDef.type = BodyDef.BodyType.DynamicBody;
-        ballBodyDef.position.set(this.worldWidth/2f, this.worldHeight/2f);
-        ballBodyDef.linearDamping = 1.5f;
-        this.ball = this.world.createBody(ballBodyDef);
-        this.ball.createFixture(ballFixtureDef);
+        this.createBall();
 
         // ---------------------- Create ball sprite ----------------------
         this.ballSprite = new Sprite(new Texture("ball.png"), 32, 32);
@@ -203,8 +199,92 @@ public class GameScreen implements Screen {
         this.goalRightBody = this.world.createBody(goalRightBodyDef);
         this.goalRightBody.createFixture(goalRightFixtureDef);
 
+        // ---------------------- setup font ----------------------
+
+        final FreeTypeFontGenerator fontGenerator = new FreeTypeFontGenerator(Gdx.files.internal("PrStart.ttf"));
+
+        final FreeTypeFontGenerator.FreeTypeFontParameter fontParameter = new FreeTypeFontGenerator.FreeTypeFontParameter();
+        fontParameter.size = 8;
+        fontParameter.color = Color.WHITE;
+        this.font = fontGenerator.generateFont(fontParameter);
+
+        final FreeTypeFontGenerator.FreeTypeFontParameter fontGoalParameter = new FreeTypeFontGenerator.FreeTypeFontParameter();
+        fontGoalParameter.size = 16;
+        fontGoalParameter.color = Color.GRAY;
+        this.fontGoal = fontGenerator.generateFont(fontGoalParameter);
+
         // ---------------------- box 2d debug ----------------------
         this.debugRenderer = new Box2DDebugRenderer();
+    }
+
+    private void createBall() {
+        final BodyDef ballBodyDef = new BodyDef();
+        ballBodyDef.type = BodyDef.BodyType.DynamicBody;
+        ballBodyDef.position.set(this.worldWidth/2f, this.worldHeight/2f);
+        ballBodyDef.linearDamping = 1.5f;
+        this.ball = this.world.createBody(ballBodyDef);
+        this.ball.createFixture(ballFixtureDef);
+    }
+
+    private void createPlayerLeft() {
+        final BodyDef playerLeftBodyDef = new BodyDef();
+        playerLeftBodyDef.type = BodyDef.BodyType.DynamicBody;
+        playerLeftBodyDef.position.set(10f, this.worldHeight/2f);
+        playerLeftBodyDef.linearDamping = 1.5f;
+        this.playerLeft = this.world.createBody(playerLeftBodyDef);
+        this.playerLeft.createFixture(playerFixtureDef);
+    }
+
+    private void createPlayerRight() {
+        final BodyDef playerRightBodyDef = new BodyDef();
+        playerRightBodyDef.type = BodyDef.BodyType.DynamicBody;
+        playerRightBodyDef.position.set(90f, this.worldHeight/2f);
+        playerRightBodyDef.linearDamping = 1.5f;
+        this.playerRight = this.world.createBody(playerRightBodyDef);
+        this.playerRight.createFixture(playerFixtureDef);
+    }
+
+    private void startTimer() {
+        this.time = 180;
+        this.timerTask = new Timer.Task() {
+            @Override
+            public void run() {
+                synchronized (GameScreen.this) {
+                    GameScreen.this.time--;
+                    if (GameScreen.this.time == 0) {
+                        GameScreen.this.timeOut = true;
+                        this.cancel();
+                    }
+                }
+            }
+        };
+        Timer.schedule(this.timerTask, 1f, 1f);
+    }
+
+    private void restart() {
+        this.world.destroyBody(this.playerLeft);
+        this.world.destroyBody(this.playerRight);
+        this.world.destroyBody(this.ball);
+        this.createPlayerLeft();
+        this.createPlayerRight();
+        this.createBall();
+        this.goal = false;
+        this.goalAtLeft = false;
+        this.goalAtRight = false;
+        synchronized (this) {
+            this.time++;
+        }
+    }
+
+    private void performGoal() {
+        Timer.schedule(new Timer.Task() {
+            @Override
+            public void run() {
+                if (GameScreen.this.goalAtLeft) GameScreen.this.pointRight++;
+                if (GameScreen.this.goalAtRight) GameScreen.this.pointLeft++;
+                GameScreen.this.restart();
+            }
+        }, 1f);
     }
 
     @Override
@@ -213,8 +293,15 @@ public class GameScreen implements Screen {
         Gdx.gl.glClearColor(0, 0, 0, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
+        boolean timeOut;
+        int time;
+        synchronized (this) {
+            timeOut = this.timeOut;
+            time = this.time;
+        }
+
         // tick world
-        if (!this.goal) {
+        if (!this.goal && !timeOut) {
             this.playerLeft.applyForceToCenter(this.playerLeftControl.getVelocity(), true);
             this.playerRight.applyForceToCenter(this.playerRightControl.getVelocity(), true);
             world.step(Gdx.graphics.getDeltaTime(), 1, 1);
@@ -230,24 +317,34 @@ public class GameScreen implements Screen {
 
         // star drawing
         this.batch.begin();
+
         this.batch.draw(this.terrain, this.middleX - 50.55f, this.middleY - 38.375f, this.worldWidth, this.worldHeight);
         this.playerLeftSprite.draw(this.batch);
         this.playerRightSprite.draw(this.batch);
         this.ballSprite.draw(this.batch);
 
+        this.font.draw(this.batch, String.valueOf(time), this.middleX / 1.25f, this.middleY + (this.middleY / 1.02f));
+
+        this.font.draw(this.batch, String.valueOf(this.pointLeft), this.middleX / 2.25f, this.middleY + (this.middleY / 1.02f));
+        this.font.draw(this.batch, String.valueOf(this.pointRight), this.middleX + this.middleX / 2f, this.middleY + (this.middleY / 1.02f));
+
+        if (this.goal) this.fontGoal.draw(this.batch, "Goal!", this.middleX / 3f, this.middleY + 2f);
+
         this.batch.end();
         // ---------------------- box 2d debug ----------------------
-        this.drawDebugLine(
-                this.playerLeft.getPosition(),
-                this.playerLeftControl.getVelocity(),
-                this.camera.combined
-        );
-        this.drawDebugLine(
-                this.playerRight.getPosition(),
-                this.playerRightControl.getVelocity(),
-                this.camera.combined
-        );
-        this.debugRenderer.render(this.world, this.camera.combined);
+        if (this.debug) {
+            this.drawDebugLine(
+                    this.playerLeft.getPosition(),
+                    this.playerLeftControl.getVelocity(),
+                    this.camera.combined
+            );
+            this.drawDebugLine(
+                    this.playerRight.getPosition(),
+                    this.playerRightControl.getVelocity(),
+                    this.camera.combined
+            );
+            this.debugRenderer.render(this.world, this.camera.combined);
+        }
     }
 
     private final ShapeRenderer debugShapeRenderer = new ShapeRenderer();
@@ -290,16 +387,19 @@ public class GameScreen implements Screen {
                 if (contact.getFixtureA().getBody().equals(GameScreen.this.goalLeftBody) && contact.getFixtureB().getBody().equals(GameScreen.this.ball)) {
                     GameScreen.this.goal = true;
                     GameScreen.this.goalAtLeft = true;
+                    GameScreen.this.performGoal();
                 }
                 if (contact.getFixtureA().getBody().equals(GameScreen.this.goalRightBody) && contact.getFixtureB().getBody().equals(GameScreen.this.ball)) {
                     GameScreen.this.goal = true;
                     GameScreen.this.goalAtRight = true;
+                    GameScreen.this.performGoal();
                 }
             }
             @Override public void endContact(Contact contact) {}
             @Override public void preSolve(Contact contact, Manifold oldManifold) {}
             @Override public void postSolve(Contact contact, ContactImpulse impulse) {}
         });
+        this.startTimer();
     }
 
     @Override
