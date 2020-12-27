@@ -2,7 +2,6 @@ package fr.alasdiablo.miniball.player;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
-import com.badlogic.gdx.math.Vector2;
 
 public class PlayerRightControl extends PlayerLeftControl {
 
@@ -27,21 +26,14 @@ public class PlayerRightControl extends PlayerLeftControl {
     @Override
     public void moveVector() {
         if (Gdx.input.isTouched()) {
-            int x = Gdx.input.getX();
-            if (x > Gdx.graphics.getWidth()/2) {
-                float deltaX = Gdx.input.getDeltaX() * 100f;
-                float deltaY = -Gdx.input.getDeltaY() * 100f;
-                this.vector2 = new Vector2(
-                        Math.min( // make sure that x is between -800f and 800f
-                                Math.max(deltaX, -800f),
-                                800f
-                        ),
-                        Math.min( // make sure that y is between -800f and 800f
-                                Math.max(deltaY, -800f),
-                                800f
-                        )
-                );
-            }
+            try {
+                int x = Gdx.input.getX(0);
+                if (x > Gdx.graphics.getWidth()/2) this.vector2 = performInput(0);
+            } catch (Exception ignored) {}
+            try {
+                int x = Gdx.input.getX(1);
+                if (x > Gdx.graphics.getWidth()/2) this.vector2 = performInput(1);
+            } catch (Exception ignored) {}
         }
     }
 
